@@ -1,10 +1,8 @@
+import _ from "lodash";
+import chroma from "chroma-js";
 import { cos, sin } from "mathjs";
 import { Application, Container, Graphics } from "pixi.js";
 import * as PIXI from "pixi.js";
-import Utils from "../data/Utils";
-import Gradient from "javascript-color-gradient";
-import Rainbow from "./../Utils/Rainbow";
-import ColorUtils from "../data/ColorUtils";
 
 class DemoCircles {
     constructor() {
@@ -15,6 +13,15 @@ class DemoCircles {
 
         this.appWidth = 1000;
         this.appHeight = 1000;
+
+        this.dotColor = "0xFFFAF0";
+        this.circleIndicatorXColor = chroma.scale([ '#48EDFA', '#FADF2F', '#FA169E' ]).mode('lch').colors(this.nbrXCases);
+        this.circleIndicatorYColor = chroma.scale([ '#AB17E6', '#84E62E', '#4561E6' ]).mode('lch').colors(this.nbrYCases);
+
+        this.colorsIndicator = [];
+        this.dotsIndicator = [];
+        this.dots = [];
+        this.dotsDraw = [];
 
         this.widthZone = this.appWidth / this.nbrXCases;
         this.heightZone = this.appHeight / this.nbrYCases;
@@ -30,21 +37,31 @@ class DemoCircles {
 
         this.mainDiv.appendChild(this.app.view);
 
+        this.testContainer = new Container();
+        this.app.stage.addChild(this.testContainer);
+
         this.createZones();
         this.createCircleIndicator();
         this.createDots();
-
         this.app.ticker.add(this.onDrawDotsIndicator, this);
+
         this.timeElapse = 0;
         this.degree = 0;
 
-        let _colorA = 0xFF0000;
-        let _colorB = 0x0000FF;
-        console.log(ColorUtils.hexAverage("#FF0000", "#0000FF"));
+        // this.app.ticker.add(this.drawSample, this);
+        // this.drawSample();
     }
 
-    onTestTicker(deltaTime) {
-        console.log(deltaTime);
+    drawSample() {
+        let _foo = new Graphics();
+        _foo.beginFill('0xFF0000');
+        _foo.drawRect(0, 0, 150, 150);
+
+        let _texture = this.app.renderer.generateTexture(_foo);
+        let _sprite = new PIXI.Sprite(_texture);
+        _sprite.x = 150 * Math.random();
+        _sprite.y = 150 * Math.random();
+        this.app.stage.addChild(_sprite);
     }
 
     createZones() {
@@ -71,48 +88,35 @@ class DemoCircles {
     }
 
     createCircleIndicator() {
-        this.colorsIndicator = [];
-        this.dotsIndicator = [];
-        this.dots = [];
-        this.dotsDraw = [];
-
-        let _rainbowX = new Rainbow();
-        _rainbowX.setNumberRange(1, this.nbrXCases - 1);
-        _rainbowX.setSpectrum('green', 'red');
-
-        let _rainbowY = new Rainbow();
-        _rainbowY.setNumberRange(1, this.nbrYCases - 1);
-        _rainbowY.setSpectrum('blue', 'yellow');
-
         for (let i = 1; i < this.nbrXCases; i++) {
 
-            let _color = "0x" + _rainbowX.colourAt(i);
+            let _color = PIXI.utils.string2hex(this.circleIndicatorXColor[ i - 1 ]);
             let _circleIndicatorX = new Graphics();
             _circleIndicatorX.lineStyle(2.5, _color, 1);
             _circleIndicatorX.drawCircle(this.widthZone / 2, this.heightZone / 2, 50);
             this.zones[ i ].addChild(_circleIndicatorX);
             this.colorsIndicator[ i ] = _color;
 
-            _color = "0x" + _rainbowY.colourAt(i);
+            _color = PIXI.utils.string2hex(this.circleIndicatorYColor[ i - 1 ]);
             let _circleIndicatorY = new Graphics();
             _circleIndicatorY.lineStyle(2.5, _color, 1);
             _circleIndicatorY.drawCircle(this.widthZone / 2, this.heightZone / 2, 50);
-            this.zones[ (i * 8) ].addChild(_circleIndicatorY);
-            this.colorsIndicator[ (i * 8) ] = _color;
+            this.zones[ (i * this.nbrXCases) ].addChild(_circleIndicatorY);
+            this.colorsIndicator[ (i * this.nbrXCases) ] = _color;
 
             let _dotIndicatorX = new Graphics();
-            _dotIndicatorX.beginFill(0xFFFAF0, 1);
+            _dotIndicatorX.beginFill(this.dotColor, 1);
             _dotIndicatorX.drawCircle(0, 0, 4);
             _dotIndicatorX.degree = 0;
             this.dotsIndicator[ i ] = _dotIndicatorX;
             this.zones[ i ].addChild(_dotIndicatorX);
 
             let _dotIndicatorY = new Graphics();
-            _dotIndicatorY.beginFill(0xFFFAF0, 1);
+            _dotIndicatorY.beginFill(this.dotColor, 1);
             _dotIndicatorY.drawCircle(0, 0, 4);
             _dotIndicatorY.degree = 0;
-            this.dotsIndicator[ i * 8 ] = _dotIndicatorY;
-            this.zones[ i * 8 ].addChild(_dotIndicatorY);
+            this.dotsIndicator[ i * this.nbrXCases ] = _dotIndicatorY;
+            this.zones[ i * this.nbrXCases ].addChild(_dotIndicatorY);
         }
     }
 
@@ -120,23 +124,36 @@ class DemoCircles {
         for (let i = 1; i < this.nbrXCases; i++) {
             for (let k = 1; k < this.nbrYCases; k++) {
                 let _dot = new Graphics();
-                _dot.beginFill(0xFFFAF0, 1);
+                _dot.beginFill(this.dotColor, 1);
                 _dot.drawCircle(0, 0, 3);
-                this.zones[ k + (i * 8) ].addChild(_dot);
-                this.dots[ k + (i * 8) ] = _dot;
-                this.dots[ k + (i * 8) ].x = this.widthZone / 2 + 50;
-                this.dots[ k + (i * 8) ].y = this.heightZone / 2;
+                this.zones[ k + (i * this.nbrXCases) ].addChild(_dot);
+                this.dots[ k + (i * this.nbrXCases) ] = _dot;
+                this.dots[ k + (i * this.nbrXCases) ].x = this.widthZone / 2 + 50;
+                this.dots[ k + (i * this.nbrXCases) ].y = this.heightZone / 2;
+
+                let _colorDotDraw = PIXI.utils.string2hex(chroma.mix(
+                    PIXI.utils.hex2string(this.colorsIndicator[ i ]),
+                    PIXI.utils.hex2string(this.colorsIndicator[ k * this.nbrXCases ])).hex());
 
                 let _dotDraw = new Graphics();
-                _dotDraw.colorFill = ColorUtils.hexAverage(
-                    this.colorsIndicator[ i ].replace("0x", "#"),
-                    this.colorsIndicator[ k * 8 ].replace("0x", "#")).replace("#", "0x")
+                _dotDraw.colorFill = _colorDotDraw;
                 _dotDraw.lineStyle(2.5, _dotDraw.colorFill);
-                this.dotsDraw[ k + (i * 8) ] = _dotDraw;
-                this.zones[ k + (i * 8) ].addChild(_dotDraw);
+                this.dotsDraw[ k + (i * this.nbrXCases) ] = _dotDraw;
+                this.zones[ k + (i * this.nbrXCases) ].addChild(_dotDraw);
             }
         }
     }
+
+    generateSpriteFromGraphics(_graphics, _index) {
+
+        let _texture = this.app.renderer.generateTexture(_graphics, PIXI.SCALE_MODES, window.devicePixelRatio, new PIXI.Rectangle(0, 0, this.widthZone, this.heightZone));
+        let _sprite = new PIXI.Sprite(_texture);
+        this.zones[ _index ].addChild(_sprite);
+
+        // this.app.ticker.remove(this.onDrawDotsIndicator, this);
+    }
+
+    /* ------------------ Update ------------------ */
 
     onDrawDotsIndicator(deltaTime) {
 
@@ -155,19 +172,19 @@ class DemoCircles {
             this.dotsIndicator[ i ].x = this.widthZone / 2 + _x;
             this.dotsIndicator[ i ].y = this.heightZone / 2 + _y;
 
-            this.dotsIndicator[ i * 8 ].x = this.widthZone / 2 + _x;
-            this.dotsIndicator[ i * 8 ].y = this.heightZone / 2 + _y;
+            this.dotsIndicator[ i * this.nbrXCases ].x = this.widthZone / 2 + _x;
+            this.dotsIndicator[ i * this.nbrXCases ].y = this.heightZone / 2 + _y;
 
             for (let k = 1; k < this.nbrYCases; k++) {
 
-                let _dot = this.dots[ k + (i * 8) ];
+                let _dot = this.dots[ k + (i * this.nbrXCases) ];
 
-                this.onMoveToIllustration(this.dotsDraw[ k + (i * 8) ], _dot.x, _dot.y);
+                this.onMoveToIllustration(this.dotsDraw[ k + (i * this.nbrXCases) ], _dot.x, _dot.y);
 
                 _dot.x = this.dotsIndicator[ k ].x
-                _dot.y = this.dotsIndicator[ i * 8 ].y
+                _dot.y = this.dotsIndicator[ i * this.nbrXCases ].y
 
-                this.onLineToIllustration(this.dotsDraw[ k + (i * 8) ], _dot.x, _dot.y);
+                this.onLineToIllustration(this.dotsDraw[ k + (i * this.nbrXCases) ], _dot.x, _dot.y);
             }
         }
     }
@@ -175,9 +192,17 @@ class DemoCircles {
     onCleanDrawIllustration() {
         for (let i = 1; i < this.nbrXCases; i++) {
             for (let k = 1; k < this.nbrYCases; k++) {
-                let _dotDraw = this.dotsDraw[ k + (i * 8) ];
+                let _dotDraw = this.dotsDraw[ k + (i * this.nbrXCases) ];
+
+                this.zones[ k + i * this.nbrXCases ].removeChild(_dotDraw);
+                this.generateSpriteFromGraphics(_dotDraw, k + i * this.nbrXCases);
+                this.zones[ k + i * this.nbrXCases ].addChild(_dotDraw);
+
+
                 _dotDraw.clear();
                 _dotDraw.lineStyle(2.5, _dotDraw.colorFill);
+
+                console.log(this.zones[ k + i * this.nbrXCases ].children.length);
             }
         }
     }
